@@ -1,4 +1,5 @@
 type DiscordWebhookPayload = {
+  flags: number;
   content: string;
 };
 
@@ -71,7 +72,9 @@ const sendFeedToDiscord = async (
 
 const postToDiscord = (webhookUrl: string, content: string): void => {
   const payload: DiscordWebhookPayload = {
-    content: "@silent " + content,
+    // https://discord.com/developers/docs/resources/channel#message-object-message-flags
+    flags: 1 << 12,
+    content: content,
   };
   const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
     method: "post",
