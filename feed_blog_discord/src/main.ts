@@ -43,7 +43,7 @@ const businessUrls: Array<string> = [
   "https://toyokeizai.net/list/feed/rss",
   "https://b.hatena.ne.jp/hotentry/all.rss",
   "https://feeds.dailyfeed.jp/feed/103.rss",
-  "https://dailyfeed.jp/feed/22348",
+  "https://feeds.dailyfeed.jp/feed/s/22/348.rss",
 ];
 
 const main = async () => {
