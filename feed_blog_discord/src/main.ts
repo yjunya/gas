@@ -67,6 +67,10 @@ const sendFeedToDiscord = async ({
   const webhookURL =
     PropertiesService.getScriptProperties().getProperty(webhookKey);
   if (!webhookURL) return;
+  const errorWebhookURL = PropertiesService.getScriptProperties().getProperty(
+    "DISCORD_WEBHOOK_URL_ERROR"
+  );
+  if (!errorWebhookURL) return;
   const results = await Promise.allSettled(urls.map(fetchFeedWithType));
   const fulfilledResults = results.filter(
     (r) => r.status === "fulfilled"
@@ -86,10 +90,18 @@ const sendFeedToDiscord = async ({
     }
   });
 
-  [...messages, ...rejectedResults.map((r) => r.reason.message)]
+  messages
     .filter((m) => m)
     .forEach((message) => {
       postToDiscord(webhookURL, message);
+      Utilities.sleep(1000);
+    });
+
+  rejectedResults
+    .map((r) => r.reason.message)
+    .filter((m) => m)
+    .forEach((message) => {
+      postToDiscord(errorWebhookURL, message);
       Utilities.sleep(1000);
     });
 };
