@@ -109,7 +109,9 @@ const sendFeedToDiscord = async ({
 const fetchFeedWithType = async (url: string): Promise<FetchResult> => {
   const root = (() => {
     try {
-      const response = UrlFetchApp.fetch(url);
+      const response = UrlFetchApp.fetch(url, {
+        contentType: "application/xml; charset=utf-8",
+      });
       const xml = XmlService.parse(response.getContentText());
       return xml.getRootElement();
     } catch {
