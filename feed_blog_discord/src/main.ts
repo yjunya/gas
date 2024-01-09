@@ -35,7 +35,16 @@ const techUrls: Array<string> = [
   "https://www.publickey1.jp/atom.xml",
 ];
 
-const businessUrls: Array<string> = ["https://techcrunch.com/feed/"];
+const businessUrls: Array<string> = [
+  "https://techcrunch.com/feed/",
+  "https://www.google.co.jp/alerts/feeds/12342435434000837131/13834124633392104991", // シリーズA
+  "https://www.google.co.jp/alerts/feeds/12342435434000837131/13591642610062866245", // 資金調達
+  "https://businessnetwork.jp/article/feed/",
+  "https://toyokeizai.net/list/feed/rss",
+  "https://b.hatena.ne.jp/hotentry/all.rss",
+  "https://feeds.dailyfeed.jp/feed/103.rss",
+  "https://dailyfeed.jp/feed/22348",
+];
 
 const main = async () => {
   await sendFeedToDiscord({
