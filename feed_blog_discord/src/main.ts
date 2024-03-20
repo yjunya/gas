@@ -67,19 +67,12 @@ const sendFeedToDiscord = async ({
   const webhookURL =
     PropertiesService.getScriptProperties().getProperty(webhookKey);
   if (!webhookURL) return;
-  const errorWebhookURL = PropertiesService.getScriptProperties().getProperty(
-    "DISCORD_WEBHOOK_URL_ERROR"
-  );
-  if (!errorWebhookURL) return;
   const results = await Promise.allSettled(urls.map(fetchFeedWithType));
   const fulfilledResults = results.filter(
     (r) => r.status === "fulfilled"
   ) as PromiseFulfilledResult<FetchResult>[];
-  const rejectedResults = results.filter(
-    (r) => r.status === "rejected"
-  ) as PromiseRejectedResult[];
 
-  const messages = fulfilledResults.map(({ value }) => {
+  const messages = fulfilledResults.flatMap(({ value }) => {
     switch (value.kind) {
       case "RSS 1.0":
         return parseRSS1(value);
@@ -97,13 +90,20 @@ const sendFeedToDiscord = async ({
       Utilities.sleep(1000);
     });
 
-  rejectedResults
-    .map((r) => r.reason.message)
-    .filter((m) => m)
-    .forEach((message) => {
-      postToDiscord(errorWebhookURL, message);
-      Utilities.sleep(1000);
-    });
+  // const errorWebhookURL = PropertiesService.getScriptProperties().getProperty(
+  //   "DISCORD_WEBHOOK_URL_ERROR"
+  // );
+  // if (!errorWebhookURL) return;
+  // const rejectedResults = results.filter(
+  //   (r) => r.status === "rejected"
+  // ) as PromiseRejectedResult[];
+  // rejectedResults
+  //   .map((r) => r.reason.message)
+  //   .filter((m) => m)
+  //   .forEach((message) => {
+  //     postToDiscord(errorWebhookURL, message);
+  //     Utilities.sleep(1000);
+  //   });
 };
 
 const fetchFeedWithType = async (url: string): Promise<FetchResult> => {
@@ -140,33 +140,28 @@ const fetchFeedWithType = async (url: string): Promise<FetchResult> => {
   }
 };
 
-const parseRSS2 = ({ root, url }: FetchResult): string => {
+const parseRSS2 = ({ root, url }: FetchResult): Array<string> => {
   try {
     const channel = root.getChild("channel");
     const title = channel.getChildText("title");
     const items = channel.getChildren("item");
     const newItems = items.filter((item) =>
-      isNewerThanOneHour(item.getChildText("pubDate"))
+      isNew(item.getChildText("pubDate"))
     );
-    if (!newItems.length) return "";
-    return (
-      `## [${title}](<${url}>)\n\n` +
-      newItems
-        .map(
-          (item) =>
-            `### ・[${item.getChildText("title")}](<${item.getChildText(
-              "link"
-            )}>)`
-        )
-        .join("\n") +
-      "\n"
+    if (!newItems.length) return [];
+    return [`## [${title}](<${url}>)\n\n`].concat(
+      newItems.map((item) => {
+        const title = item.getChildText("title");
+        const link = item.getChildText("link");
+        return `### ・[${title}](<${link}>)\n`;
+      })
     );
   } catch {
-    return `parse error (<${url}>)`;
+    return [`parse error (<${url}>)`];
   }
 };
 
-const parseRSS1 = ({ root, url }: FetchResult): string => {
+const parseRSS1 = ({ root, url }: FetchResult): Array<string> => {
   try {
     const channel = root.getChild("channel", root.getNamespace(""));
     const title = channel.getChildText("title", root.getNamespace(""));
@@ -175,67 +170,60 @@ const parseRSS1 = ({ root, url }: FetchResult): string => {
       XmlService.getNamespace("http://purl.org/rss/1.0/")
     );
     const newItems = items.filter((item) =>
-      isNewerThanOneHour(
+      isNew(
         item.getChildText(
           "date",
           XmlService.getNamespace("http://purl.org/dc/elements/1.1/")
         )
       )
     );
-    if (!newItems.length) return "";
-    return (
-      `## [${title}](<${url}>)\n\n` +
-      newItems
-        .map(
-          (item) =>
-            `### ・[${item.getChildText(
-              "title",
-              XmlService.getNamespace("http://purl.org/rss/1.0/")
-            )}](<${item.getChildText(
-              "link",
-              XmlService.getNamespace("http://purl.org/rss/1.0/")
-            )}>)`
-        )
-        .join("\n") +
-      "\n"
+    if (!newItems.length) return [];
+    return [`## [${title}](<${url}>)\n\n`].concat(
+      newItems.map((item) => {
+        const title = item.getChildText(
+          "title",
+          XmlService.getNamespace("http://purl.org/rss/1.0/")
+        );
+        const link = item.getChildText(
+          "link",
+          XmlService.getNamespace("http://purl.org/rss/1.0/")
+        );
+        return `### ・[${title}](<${link}>)\n`;
+      })
     );
   } catch {
-    return `parse error (<${url}>)`;
+    return [`parse error (<${url}>)`];
   }
 };
 
-const parseAtom = ({ root, url }: FetchResult): string => {
+const parseAtom = ({ root, url }: FetchResult): Array<string> => {
   try {
     const title = root.getChildText("title", root.getNamespace());
     const items = root.getChildren("entry", root.getNamespace());
     const newItems = items.filter((item) =>
-      isNewerThanOneHour(item.getChildText("updated", root.getNamespace()))
+      isNew(item.getChildText("updated", root.getNamespace()))
     );
-    if (!newItems.length) return "";
-    return (
-      `## [${title}](<${url}>)\n\n` +
-      newItems
-        .map((item) => {
-          const title = item.getChildText("title", root.getNamespace());
-          const linkElement = item.getChild("link", root.getNamespace());
-          const link = linkElement.getAttribute("href")
-            ? linkElement.getAttribute("href").getValue()
-            : linkElement.getText();
+    if (!newItems.length) return [];
+    return [`## [${title}](<${url}>)\n\n`].concat(
+      newItems.map((item) => {
+        const title = item.getChildText("title", root.getNamespace());
+        const linkElement = item.getChild("link", root.getNamespace());
+        const link = linkElement.getAttribute("href")
+          ? linkElement.getAttribute("href").getValue()
+          : linkElement.getText();
 
-          return `### ・[${title}](<${link}>)`;
-        })
-        .join("\n") +
-      "\n"
+        return `### ・[${title}](<${link}>)\n`;
+      })
     );
   } catch {
-    return `parse error (<${url}>)`;
+    return [`parse error (<${url}>)`];
   }
 };
 
-const isNewerThanOneHour = (dateString: string) => {
+const isNew = (dateString: string) => {
   const targetDate = new Date(dateString);
   const currentDate = new Date();
-  const oneHourAgo = new Date(currentDate.getTime() - 60 * 60 * 1000);
+  const oneHourAgo = new Date(currentDate.getTime() - 24 * 60 * 60 * 1000);
   return targetDate > oneHourAgo;
 };
 
