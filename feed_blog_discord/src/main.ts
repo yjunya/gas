@@ -149,13 +149,15 @@ const parseRSS2 = ({ root, url }: FetchResult): Array<string> => {
       isNew(item.getChildText("pubDate"))
     );
     if (!newItems.length) return [];
-    return [`## [${title}](<${url}>)\n\n`].concat(
-      newItems.map((item) => {
-        const title = item.getChildText("title");
-        const link = item.getChildText("link");
-        return `### ・[${title}](<${link}>)\n`;
-      })
-    );
+    return [`## [${title}](<${url}>)\n\n`]
+      .concat(
+        newItems.map((item) => {
+          const title = item.getChildText("title");
+          const link = item.getChildText("link");
+          return `### ・[${title}](<${link}>)\n`;
+        })
+      )
+      .concat(["\n\n\n"]);
   } catch {
     return [`parse error (<${url}>)`];
   }
@@ -178,19 +180,21 @@ const parseRSS1 = ({ root, url }: FetchResult): Array<string> => {
       )
     );
     if (!newItems.length) return [];
-    return [`## [${title}](<${url}>)\n\n`].concat(
-      newItems.map((item) => {
-        const title = item.getChildText(
-          "title",
-          XmlService.getNamespace("http://purl.org/rss/1.0/")
-        );
-        const link = item.getChildText(
-          "link",
-          XmlService.getNamespace("http://purl.org/rss/1.0/")
-        );
-        return `### ・[${title}](<${link}>)\n`;
-      })
-    );
+    return [`## [${title}](<${url}>)\n\n`]
+      .concat(
+        newItems.map((item) => {
+          const title = item.getChildText(
+            "title",
+            XmlService.getNamespace("http://purl.org/rss/1.0/")
+          );
+          const link = item.getChildText(
+            "link",
+            XmlService.getNamespace("http://purl.org/rss/1.0/")
+          );
+          return `### ・[${title}](<${link}>)\n`;
+        })
+      )
+      .concat(["\n\n\n"]);
   } catch {
     return [`parse error (<${url}>)`];
   }
@@ -204,17 +208,19 @@ const parseAtom = ({ root, url }: FetchResult): Array<string> => {
       isNew(item.getChildText("updated", root.getNamespace()))
     );
     if (!newItems.length) return [];
-    return [`## [${title}](<${url}>)\n\n`].concat(
-      newItems.map((item) => {
-        const title = item.getChildText("title", root.getNamespace());
-        const linkElement = item.getChild("link", root.getNamespace());
-        const link = linkElement.getAttribute("href")
-          ? linkElement.getAttribute("href").getValue()
-          : linkElement.getText();
+    return [`## [${title}](<${url}>)\n\n`]
+      .concat(
+        newItems.map((item) => {
+          const title = item.getChildText("title", root.getNamespace());
+          const linkElement = item.getChild("link", root.getNamespace());
+          const link = linkElement.getAttribute("href")
+            ? linkElement.getAttribute("href").getValue()
+            : linkElement.getText();
 
-        return `### ・[${title}](<${link}>)\n`;
-      })
-    );
+          return `### ・[${title}](<${link}>)\n`;
+        })
+      )
+      .concat(["\n\n\n"]);
   } catch {
     return [`parse error (<${url}>)`];
   }
