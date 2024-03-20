@@ -1,0 +1,14 @@
+version: '3'
+
+tasks:
+  setup:
+    cmds:
+      - npm i
+
+  deploy:
+    cmds:
+      - npm run clasp push
+
+  open:
+    cmds:
+      - npm run clasp open
